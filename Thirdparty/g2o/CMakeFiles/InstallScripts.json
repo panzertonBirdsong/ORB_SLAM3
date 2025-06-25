@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/pzt/Documents/Research/SLAM/ORB_SLAM3/Thirdparty/g2o/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

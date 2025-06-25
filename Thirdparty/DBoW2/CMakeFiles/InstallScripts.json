@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/pzt/Documents/Research/SLAM/ORB_SLAM3/Thirdparty/DBoW2/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

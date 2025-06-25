@@ -1,0 +1,11 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/pzt/Documents/Research/SLAM/ORB_SLAM3/Thirdparty/Sophus/cmake_install.cmake",
+		"/home/pzt/Documents/Research/SLAM/ORB_SLAM3/Thirdparty/Sophus/test/cmake_install.cmake",
+		"/home/pzt/Documents/Research/SLAM/ORB_SLAM3/Thirdparty/Sophus/test/core/cmake_install.cmake",
+		"/home/pzt/Documents/Research/SLAM/ORB_SLAM3/Thirdparty/Sophus/test/ceres/cmake_install.cmake",
+		"/home/pzt/Documents/Research/SLAM/ORB_SLAM3/Thirdparty/Sophus/examples/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
