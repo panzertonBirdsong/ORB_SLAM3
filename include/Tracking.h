@@ -37,6 +37,9 @@
 #include "ImuTypes.h"
 #include "Settings.h"
 
+#include "RLPlugin.h"
+#include "TCPClient.h"
+
 #include "GeometricCamera.h"
 
 #include <mutex>
@@ -52,6 +55,7 @@ class LocalMapping;
 class LoopClosing;
 class System;
 class Settings;
+class RLEnvironment;
 
 class Tracking
 {  
@@ -75,6 +79,9 @@ public:
 
     void GrabImuData(const IMU::Point &imuMeasurement);
 
+    void ChangeORB(int nFeatures, int nLevels, int fIniThFAST, int fMinThFAST, float fScaleFactor);
+
+    void SetRL(RLEnvironment *pRL);
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopClosing(LoopClosing* pLoopClosing);
     void SetViewer(Viewer* pViewer);
@@ -256,6 +263,9 @@ protected:
     //Other Thread Pointers
     LocalMapping* mpLocalMapper;
     LoopClosing* mpLoopClosing;
+    RLEnvironment* mpRL;
+
+    std::mutex mMutexORB;
 
     //ORB
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;

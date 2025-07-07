@@ -40,6 +40,9 @@
 #include "ImuTypes.h"
 #include "Settings.h"
 
+#include "RLPlugin.h"
+#include "TCPClient.h"
+
 
 namespace ORB_SLAM3
 {
@@ -79,6 +82,7 @@ class Tracking;
 class LocalMapping;
 class LoopClosing;
 class Settings;
+class RLEnvironment;
 
 class System
 {
@@ -224,6 +228,9 @@ private:
     // a pose graph optimization and full bundle adjustment (in a new thread) afterwards.
     LoopClosing* mpLoopCloser;
 
+    // RLPlugin. It dynamically adjusts the hyperparameters.
+    RLEnvironment* mpRL;
+
     // The viewer draws the map and the current camera pose. It uses Pangolin.
     Viewer* mpViewer;
 
@@ -235,6 +242,9 @@ private:
     std::thread* mptLocalMapping;
     std::thread* mptLoopClosing;
     std::thread* mptViewer;
+
+    // RL threadd
+    std::thread* mptRL;
 
     // Reset flag
     std::mutex mMutexReset;

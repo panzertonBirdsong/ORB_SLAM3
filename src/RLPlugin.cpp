@@ -4,6 +4,7 @@
 
 #include "RLPlugin.h"
 #include "TCPClient.h"
+#include "Tracking.h"
 
 namespace ORB_SLAM3
 {

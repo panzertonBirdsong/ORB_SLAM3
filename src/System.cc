@@ -33,6 +33,8 @@
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 
+#include "RLPlugin.h"
+
 namespace ORB_SLAM3
 {
 
@@ -53,18 +55,33 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     cout << "Input sensor was set to: ";
 
-    if(mSensor==MONOCULAR)
+    // Bool for device type
+    bool bMonocular = false;
+    bool bInertial =  false;
+
+    if(mSensor==MONOCULAR){
+        bMonocular = true;
         cout << "Monocular" << endl;
-    else if(mSensor==STEREO)
+    }
+    else if(mSensor==STEREO){
         cout << "Stereo" << endl;
-    else if(mSensor==RGBD)
+    }
+    else if(mSensor==RGBD){
         cout << "RGB-D" << endl;
-    else if(mSensor==IMU_MONOCULAR)
+    }
+    else if(mSensor==IMU_MONOCULAR){
+        bMonocular = true;
+        bInertial = true;
         cout << "Monocular-Inertial" << endl;
-    else if(mSensor==IMU_STEREO)
+    }
+    else if(mSensor==IMU_STEREO){
+        bInertial = true;
         cout << "Stereo-Inertial" << endl;
-    else if(mSensor==IMU_RGBD)
+    }
+    else if(mSensor==IMU_RGBD){
+        bInertial = true;
         cout << "RGB-D-Inertial" << endl;
+    }
 
     //Check settings file
     cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
@@ -213,15 +230,27 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser = new LoopClosing(mpAtlas, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR, activeLC); // mSensor!=MONOCULAR);
     mptLoopClosing = new thread(&ORB_SLAM3::LoopClosing::Run, mpLoopCloser);
 
+    // Initialize the RL thread and launch
+    std::string _strSeqName = "Test String Sequence for RLPlugin, the name will be replaced later.";
+    mpRL = new RLEnvironment(this, mpAtlas, bMonocular, bInertial, _strSeqName);
+    mptRL = new thread(&RLEnvironment::RLEnvironment::Run, mpRL);
+
     //Set pointers between threads
     mpTracker->SetLocalMapper(mpLocalMapper);
     mpTracker->SetLoopClosing(mpLoopCloser);
+    mpTracker->SetRL(mpRL);
 
     mpLocalMapper->SetTracker(mpTracker);
     mpLocalMapper->SetLoopCloser(mpLoopCloser);
+    // mpLocalMapper->SetRL(mpRL);
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+    // mpLoopCloser->SetRL(mpRL);
+
+    mpRL->SetTracker(mpTracker);
+    mpRL->SetLocalMapper(mpLocalMapper);
+    mpRL->SetLoopCloser(mpLoopCloser);
 
     //usleep(10*1000*1000);
 
