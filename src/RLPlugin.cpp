@@ -431,6 +431,7 @@ void RLEnvironment::SendRowTCP()
     if (!mpTCPClient)
     {
         std::cerr << "TCP port haven't initialized" << std::endl;
+        return;
     }
     else
     {
@@ -473,6 +474,7 @@ void RLEnvironment::SendRowTCP()
         else
         {
             csvRow << ","  << ","  << ","  << ",";
+            return;
         }
 
         if(mbCurrentFrameFeaturesReady)
@@ -503,6 +505,7 @@ void RLEnvironment::SendRowTCP()
         else
         {
             csvRow << ","  << ","  << "," << "," << "," << ","  << ","  << ","  << "," << ","  << ","  << ","  << "," << ","  << ",";
+            return;
         }
         //csvRow << mfActionThRefRatio << "," << mnActionMinFrames << "," << mnActionMaxFrames;
 
@@ -536,9 +539,25 @@ void RLEnvironment::SetTCP2Actions()
 //
 //        std::cout << std::endl;
 
-        mfActionThRefRatio = floats[0];
-        mnActionMinFrames = (int)floats[1];
-        mnActionMaxFrames = (int)floats[2];
+        // mfActionThRefRatio = floats[0];
+        // mnActionMinFrames = (int)floats[1];
+        // mnActionMaxFrames = (int)floats[2];
+
+        int nFeatures, int nLevels, int fIniThFAST, int fMinThFAST, float fScaleFactor
+
+        int nFeatures = (int)floats[0];
+        // int nLevels = (int)
+        float fScaleFactor = floats[1];
+        int fMinThFAST = (int)floats[2];
+        int fIniThFAST = (int)floats[3]
+        int nLevels = (int)floats[4];
+
+
+        if (mpTracker) {
+            mpTracker->ChangeORB(nFeatures, nLevels, fIniThFAST, fMinThFAST, fScaleFactor);
+        }
+
+
     }
 }
 

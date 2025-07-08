@@ -604,7 +604,7 @@ void Tracking::newParameterLoader(Settings *settings) {
     if(mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR)
         mpIniORBextractor = new ORBextractor(5*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    mMutexORB.lock();
+    mMutexORB.unlock();
 
     //IMU parameters
     Sophus::SE3f Tbc = settings->Tbc();

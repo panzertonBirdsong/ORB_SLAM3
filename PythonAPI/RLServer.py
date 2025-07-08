@@ -35,10 +35,9 @@ class RLServer(gym.Env):
 		self.socket.listen(20)
 		self.last_sock = None
 		self.last_addr = None
-		self.last_client = None
 
-		self.action_space = gym.spaces.Box(low=np.array([600, 0.8, 8, 15, 3]),
-											high=np.array([2000, 1.4, 16, 30, 11]),
+		self.action_space = gym.spaces.Box(low=np.array([600, 0.8, 8, 16, 3]),
+											high=np.array([2000, 1.4, 15, 30, 11]),
 											dtype=np.float32)
 		
 
@@ -53,6 +52,8 @@ class RLServer(gym.Env):
 		)
 		
 		obs_lows = np.zeros_like(highs)
+
+		self.obs_template = obs_lows
 
 		self.observation_space = gym.spaces.Box(low=obs_lows, high=obs_highs, dtype=np.float32)
 
@@ -80,38 +81,54 @@ class RLServer(gym.Env):
 		return result
 
 
-	# return the cumulative reward for current time frame
-	# set self.reward = 0
-	def get_reward(self):
-		reward = self.reward
-		self.reward = 0.0
-		return reward
+	# # return the cumulative reward for current time frame
+	# # set self.reward = 0
+	# def get_reward(self):
+	# 	reward = self.reward
+	# 	self.reward = 0.0
+	# 	return reward
 
-	# return the observation
-	def get_state(self, client_status, task_size, latency_requirement):
-		client_id_encoded = [0] * self.num_clients
-		client_id_encoded[client_status] = 1
-		states = (
-			self.threads +
-			self.workload +
-			sum(self.network_status, []) +
-			client_id_encoded +
-			[task_size] +
-			[latency_requirement]
-		)
+	def calculate_reward(self, obs):
+		...
+		return 0
 
-		return np.array(states, dtype=np.float32)
 
 	def encode_action(action):
 		...
 		return encoded_action
 
-	def decode_obs(obs):
-		...
-		return decoded_obs
+	def decode_msg(msg_str):
+
+		msg = msg_str.decode('utf-8')
+
+		if msg == "SLAM_initialized":
+			return "initialized", None
+		elif msg == "SLAM_shutdown":
+			return "shutdown", None
+		else:
+			request_type = "request_action"
+			obs_str = msg.split(",")
+			obs = []
+			for i in range(len(obs_str)):
+				if i == 1:
+					obs.append(self.encode_track_mode(obs_str[i]))
+				else:
+					obs.append(float(obs_str[i]))
+			return request_type, np.array(obs)
+
+	def clip_action(self, action):
+		low = np.array([600, 0.8, 8, 15, 3])
+		high = np.array([2000, 1.4, 16, 30, 11])
+		action = np.clip(action, low, high)
+
+		for i in range(len(action)):
+			if i != 1:
+			action[i] = int(round(action[i]))
+		return action
 
 	def step(self, action):
 		self.steps = self.steps + 1
+		action = self.clip_action(action)
 
 		if self.verbose:
 			print(f"\tSteps: {self.steps}\n", flush=True)
@@ -133,40 +150,36 @@ class RLServer(gym.Env):
 		while True:
 
 			client_socket, client_addr = self.socket.accept()
-			data = client_socket.recv(1024)
-			request = json.loads(data.decode('utf-8'))
+			msg_str = client_socket.recv(1024)
+			request_type, obs = self.decode_msg(msg_str)
 
 
-			if request["type"] == "init":
+			if request_type == "initialized":
 				...
 				continue
-			elif request["type"] == 
-
-
-			if self.verbose:
-				print(f"\t {request}", flush=True)
-
-			self.request_not_replied = True
-
-			observation = self.decode_obs(request)
-			reward = self.get_reward(request)
-
-			self.last_sock = client_socket
-			self.last_addr = client_addr
-
-			if self.steps >= self.max_steps or request["terminate"] == True:
-				terminated = True
-				self.steps = 0
-
-				print(f"Itr {self.itr} done, has run for {time.time() - self.start_time}s.", flush=True)
-					
-				self.itr += 1
+			elif request_type == "shutdown":
+				self.request_not_replied = True
+				self.last_sock = client_socket
+				self.last_addr = client_addr
+				return self.obs_template, self.calculate_reward(obs), True, False, None
 			else:
-				terminated = False
 
-			if self.verbose:
-				print(f"\t\treward: {reward}")
-			return observation, reward, terminated, False, {f"itr": self.itr}
+
+				if self.verbose:
+					print(f"\t {request}", flush=True)
+
+				self.request_not_replied = True
+
+				# observation = self.decode_obs(request)
+				# reward = self.get_reward(request)
+				reward = self.calculate_reward(obs)
+
+				self.last_sock = client_socket
+				self.last_addr = client_addr
+
+				if self.verbose:
+					print(f"\t\treward: {reward}")
+				return obs, reward, False, False, {f"itr": self.itr}
 
 
 	def reset(self, seed=None, options=None):
@@ -179,7 +192,7 @@ class RLServer(gym.Env):
 
 
 
-		observation = self.get_state(0,0,0)
+		observation = self.obs_template
 
 		self.just_reset = True
 		self.request_not_replied = False
