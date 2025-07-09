@@ -16,19 +16,30 @@ import numpy as np
 from gymnasium import spaces
 import docker
 
+from evo_helper import evo_eval
+
 
 
 class RLServer(gym.Env):
 
-	def __init__(self, max_steps=2**63-1, verbose=False, train=True):
+	def __init__(self, max_steps=2**63-1, verbose=False, train=True, reward_type="evo", ground_truth_ref="./euroc_ref.csv"):
 		super().__init__()
 
 		self.max_steps = max_steps
 		self.verbose = verbose
 		self.train = train
+		self.reward_type = reward_type
+		self.ground_truth_ref = ground_truth_ref
+
+		self.est_traj_file = "./est_traj.txt"
+		if os.path.exists(self.est_traj_file):
+			os.remove(self.est_traj_file)
+		open(self.est_traj_file, 'w').close()
+
+
 
 		self.port = 5000
-		self.host = "0.0.0.0"
+		self.host = "127.0.0.1"
 
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.bind((self.host, self.port))
@@ -57,11 +68,20 @@ class RLServer(gym.Env):
 
 		self.observation_space = gym.spaces.Box(low=obs_lows, high=obs_highs, dtype=np.float32)
 
-		self.reward = 0.0
+		self.last_cumulative_reward = 0.0
 		self.steps = 0
 		self.itr = 0
 
 		self.start_time = time.time()
+
+	def write_traj(self, obs):
+		timestamp = obs[0]
+		p_q = obs[14:21]
+		assert p_q.shape[0] == 7, "Failed to write trajectory: incorrect shape."
+		data = [f"{timestamp:.9f}"] + [f"{x:.6f}" for x in p_q]
+		line = " ".join(values) + "\n"
+		with open(self.est_traj_file, 'a') as f:
+			f.write(line)
 
 
 	def encode_track_mode(mode):
@@ -80,31 +100,33 @@ class RLServer(gym.Env):
 		result = [1 if mode == sensor else 0 for mode in sensor_types]
 		return result
 
+	def calculate_reward(self, obs, folder_name):
+		
+		if self.reward_type == "evo":
+			new_cumulative_reward = evo_eval(folder_name, self.ground_truth_ref, self.est_traj_file)
+			new_reward = new_cumulative_reward - self.last_cumulative_reward
+			self.last_cumulative_reward = new_cumulative_reward
+			return new_reward
 
-	# # return the cumulative reward for current time frame
-	# # set self.reward = 0
-	# def get_reward(self):
-	# 	reward = self.reward
-	# 	self.reward = 0.0
-	# 	return reward
-
-	def calculate_reward(self, obs):
-		...
+		elif self.reward_type == "SEESys":
+			...
 		return 0
 
 
-	def encode_action(action):
+	def encode_action(self, action):
 		...
 		return encoded_action
 
-	def decode_msg(msg_str):
+	def decode_msg(self, msg_str):
 
 		msg = msg_str.decode('utf-8')
 
 		if msg == "SLAM_initialized":
 			return "initialized", None
-		elif msg == "SLAM_shutdown":
-			return "shutdown", None
+		elif msg == "SLAM_success_shutdown":
+			return "shutdown", 0
+		elif msg == "SLAM_fail_shutdown":
+			return "shutdown", 1
 		else:
 			request_type = "request_action"
 			obs_str = msg.split(",")
@@ -155,24 +177,29 @@ class RLServer(gym.Env):
 
 
 			if request_type == "initialized":
-				...
-				continue
+				reply = "RLServer_Initialized"
+				self.client_socket.sendall(reply.encode('utf-8'))
+				self.client_socket.close()
 			elif request_type == "shutdown":
+				reply = "Server_Reset"
+				self.client_socket.sendall(reply.encode('utf-8'))
+				self.client_socket.close()
+				if obs == 0:
+					amplifier = 1
+				else:
+					amplifier = -2
+
 				self.request_not_replied = True
 				self.last_sock = client_socket
 				self.last_addr = client_addr
-				return self.obs_template, self.calculate_reward(obs), True, False, None
+				return self.obs_template, self.last_cumulative_reward*amplifier, True, False, None
 			else:
+				self.write_traj(obs)
 
-
-				if self.verbose:
-					print(f"\t {request}", flush=True)
 
 				self.request_not_replied = True
 
-				# observation = self.decode_obs(request)
-				# reward = self.get_reward(request)
-				reward = self.calculate_reward(obs)
+				reward = self.calculate_reward(obs, f"step_{self.steps}")
 
 				self.last_sock = client_socket
 				self.last_addr = client_addr
