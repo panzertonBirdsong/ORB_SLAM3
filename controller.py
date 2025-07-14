@@ -1,5 +1,7 @@
 import subprocess
 import socket
+import shutil
+import os
 
 # This controller is to communicate with RLServer and (re)start and shutdown the SLAM process.
 class SLAMController:
@@ -7,8 +9,9 @@ class SLAMController:
 		self.cmd = cmd
 
 	def run_slam(self):
+		cmd_list = ["xvfb-run", "-s", "-screen 0 1280x720x24"] + self.cmd.split()
 		pSLAM = subprocess.Popen(
-			cmdd.split(),
+			cmd_list,
 			stdout=subprocess.PIPE,
 			stderr=subprocess.PIPE
 		)
@@ -25,7 +28,7 @@ class SLAMController:
 	def communicate_with_server(self, msg, host="127.0.0.1", port=5000):
 		try:
 			with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-				s.settimeout(20.0)
+				s.settimeout(120.0)
 				s.connect((host, port))
 				s.sendall(msg.encode('utf-8'))
 				response = s.recv(1024).decode('utf-8')

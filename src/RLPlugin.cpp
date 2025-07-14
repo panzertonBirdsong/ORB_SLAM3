@@ -543,14 +543,14 @@ void RLEnvironment::SetTCP2Actions()
         // mnActionMinFrames = (int)floats[1];
         // mnActionMaxFrames = (int)floats[2];
 
-        int nFeatures, int nLevels, int fIniThFAST, int fMinThFAST, float fScaleFactor
 
         int nFeatures = (int)floats[0];
-        // int nLevels = (int)
         float fScaleFactor = floats[1];
-        int fMinThFAST = (int)floats[2];
-        int fIniThFAST = (int)floats[3]
-        int nLevels = (int)floats[4];
+        int nLevels = (int)floats[2];
+        int fIniThFAST = (int)floats[3];
+        int fMinThFAST = (int)floats[4];
+        
+        
 
 
         if (mpTracker) {

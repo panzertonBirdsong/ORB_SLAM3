@@ -1,10 +1,3 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-# from torchvision import datasets, transforms
-# from torch.utils.data import DataLoader
-# from image_reader.image_reader import ImageReader
 import time
 import pyRAPL
 import socket
@@ -47,9 +40,19 @@ class RLServer(gym.Env):
 		self.last_sock = None
 		self.last_addr = None
 
-		self.action_space = gym.spaces.Box(low=np.array([600, 0.8, 8, 16, 3]),
-											high=np.array([2000, 1.4, 15, 30, 11]),
-											dtype=np.float32)
+		SEARCH_SPACE = {
+			"ORBextractor.nFeatures":   [800, 1200, 1600, 2000],
+			"ORBextractor.scaleFactor": [1.2, 1.4],
+			"ORBextractor.nLevels":     [8, 10, 12, 14, 16],
+			"ORBextractor.iniThFAST":   [15, 20, 25, 30],
+			"ORBextractor.minThFAST":   [3, 5, 7, 9, 11],
+		}
+
+		self.action_list = list(itertools.product(*SEARCH_SPACE.values()))
+		# self.action_space = gym.spaces.Box(low=np.array([600, 0.8, 8, 16, 3]),
+		# 									high=np.array([2000, 1.4, 15, 30, 11]),
+		# 									dtype=np.float32)
+		self.action_space = gym.spaces.Discrete(len(self.action_list))
 		
 
 		obs_highs = np.array(
@@ -114,8 +117,7 @@ class RLServer(gym.Env):
 
 
 	def encode_action(self, action):
-		...
-		return encoded_action
+		return list(self.action_list[action])
 
 	def decode_msg(self, msg_str):
 
@@ -138,15 +140,15 @@ class RLServer(gym.Env):
 					obs.append(float(obs_str[i]))
 			return request_type, np.array(obs)
 
-	def clip_action(self, action):
-		low = np.array([600, 0.8, 8, 15, 3])
-		high = np.array([2000, 1.4, 16, 30, 11])
-		action = np.clip(action, low, high)
+	# def clip_action(self, action):
+	# 	low = np.array([600, 0.8, 8, 15, 3])
+	# 	high = np.array([2000, 1.4, 16, 30, 11])
+	# 	action = np.clip(action, low, high)
 
-		for i in range(len(action)):
-			if i != 1:
-			action[i] = int(round(action[i]))
-		return action
+	# 	for i in range(len(action)):
+	# 		if i != 1:
+	# 		action[i] = int(round(action[i]))
+	# 	return action
 
 	def step(self, action):
 		self.steps = self.steps + 1
