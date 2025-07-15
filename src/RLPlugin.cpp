@@ -74,9 +74,11 @@ void RLEnvironment::Run()
     while(true)
     {
         if(mbTrackerReady)
-        {
+        {   
+            std::cout << "\nxxxx\n";
             if(mbIsNewFrameProcessed == false)
-            {
+            {   
+                std::cout << "\nyyyy\n";
                 CalculateImageFeatures();
                 //std::cout << " RL plugin - Run - Time Stamp @ " << fixed << setprecision(6) << mdTimeStamp << std::endl;
                 //std::cout << " RL plugin - Run - laplacian @ " << fixed << setprecision(2) << mdLaplacian << std::endl;
@@ -554,6 +556,9 @@ void RLEnvironment::SetTCP2Actions()
 
 
         if (mpTracker) {
+
+            std::cout << "\nRequest to change orb.\n";
+
             mpTracker->ChangeORB(nFeatures, nLevels, fIniThFAST, fMinThFAST, fScaleFactor);
         }
 

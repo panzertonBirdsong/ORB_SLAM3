@@ -8,7 +8,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 import docker
-
+import os
+import itertools
 from evo_helper import evo_eval
 
 
@@ -65,7 +66,7 @@ class RLServer(gym.Env):
 			[3.14] * 3              # Yaw–Roll (±pi)
 		)
 		
-		obs_lows = np.zeros_like(highs)
+		obs_lows = np.zeros_like(obs_highs)
 
 		self.obs_template = obs_lows
 
@@ -152,7 +153,7 @@ class RLServer(gym.Env):
 
 	def step(self, action):
 		self.steps = self.steps + 1
-		action = self.clip_action(action)
+		# action = self.clip_action(action)
 
 		if self.verbose:
 			print(f"\tSteps: {self.steps}\n", flush=True)
@@ -180,12 +181,12 @@ class RLServer(gym.Env):
 
 			if request_type == "initialized":
 				reply = "RLServer_Initialized"
-				self.client_socket.sendall(reply.encode('utf-8'))
-				self.client_socket.close()
+				client_socket.sendall(reply.encode('utf-8'))
+				client_socket.close()
 			elif request_type == "shutdown":
 				reply = "Server_Reset"
-				self.client_socket.sendall(reply.encode('utf-8'))
-				self.client_socket.close()
+				client_socket.sendall(reply.encode('utf-8'))
+				client_socket.close()
 				if obs == 0:
 					amplifier = 1
 				else:
@@ -194,7 +195,7 @@ class RLServer(gym.Env):
 				self.request_not_replied = True
 				self.last_sock = client_socket
 				self.last_addr = client_addr
-				return self.obs_template, self.last_cumulative_reward*amplifier, True, False, None
+				return self.obs_template, self.last_cumulative_reward*amplifier, True, False, {"type": "episode_done"}
 			else:
 				self.write_traj(obs)
 
@@ -217,9 +218,18 @@ class RLServer(gym.Env):
 			print("\nReset: system reset\n", flush=True)
 
 
-		self.__init__()
+		# self.__init__()
+		self.est_traj_file = "./est_traj.txt"
+		if os.path.exists(self.est_traj_file):
+			os.remove(self.est_traj_file)
+		open(self.est_traj_file, 'w').close()
 
+		self.last_sock = None
+		self.last_addr = None
 
+		self.last_cumulative_reward = 0.0
+		self.steps = 0
+		self.itr = 0
 
 		observation = self.obs_template
 

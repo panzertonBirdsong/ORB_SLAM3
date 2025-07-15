@@ -1449,6 +1449,9 @@ void Tracking::ChangeORB(int nFeatures, int nLevels, int fIniThFAST, int fMinThF
     if(mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR)
         mpIniORBextractor = new ORBextractor(5*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
     mMutexORB.unlock();
+
+    std::cout << "\n ORB changed.\n";
+
 }
 
 void Tracking::SetRL(RLEnvironment *pRL){

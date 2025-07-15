@@ -1,7 +1,7 @@
 import gymnasium as gym
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import PPO, DDPG, A2C
-import RLServer.RLServer as Sys
+from rl_server import RLServer
 import time
 import random
 
@@ -12,18 +12,11 @@ import random
 
 
 def train():
-	env = Sys()
+	env = RLServer(verbose=True)
 
 	start_time = time.time()
 
-	model = PPO("MlpPolicy",
-		env,
-		n_steps=128,
-		verbose=1,
-		tensorboard_log="logs/tppo/",
-		device="cuda",
-		policy_kwargs=policy_kwargs,
-	)
+	model = PPO("MlpPolicy", env, n_steps=128, verbose=1, tensorboard_log="logs/ppo/", device="cpu")
 
 	model.learn(total_timesteps=20000, log_interval=1)
 	model.save("saved_models")
