@@ -58,7 +58,7 @@ class RLServer(gym.Env):
 
 		obs_highs = np.array(
 			[2**63 - 2] +           # TimeStamp
-			[1] * 6 +               # TrackMode one-hot-encoded
+			[1] * 7 +               # TrackMode one-hot-encoded
 			[1.0] * 4 +             # Brightness, Contrast, Entropy, Laplacian
 			[1e5] * 3 +             # MatchedInlier, NumberKeyPoints, NumberKeyFrame
 			[1e3] * 7 +             # PX–QW
@@ -83,29 +83,43 @@ class RLServer(gym.Env):
 		p_q = obs[14:21]
 		assert p_q.shape[0] == 7, "Failed to write trajectory: incorrect shape."
 		data = [f"{timestamp:.9f}"] + [f"{x:.6f}" for x in p_q]
-		line = " ".join(values) + "\n"
+		# line = " ".join(values) + "\n"
+		line = " ".join(data) + "\n"
 		with open(self.est_traj_file, 'a') as f:
 			f.write(line)
 
 
-	def encode_track_mode(mode):
-		sensor_types = [
-			"MONOCULAR",
-			"STEREO",
-			"RGBD",
-			"IMU_MONOCULAR",
-			"IMU_STEREO",
-			"IMU_RGBD"
+	def encode_track_mode(self, mode):
+		# sensor_types = [
+		# 	"MONOCULAR",
+		# 	"STEREO",
+		# 	"RGBD",
+		# 	"IMU_MONOCULAR",
+		# 	"IMU_STEREO",
+		# 	"IMU_RGBD"
+		# ]
+		mode = int(mode)
+		track_codes = [-1, 0, 1, 2, 3, 4, 5]
+		track_names = [
+			"SYSTEM_NOT_READY",
+			"NO_IMAGES_YET",
+			"NOT_INITIALIZED",
+			"OK",
+			"RECENTLY_LOST",
+			"LOST",
+			"OK_KLT",
 		]
+		code_by_name = {name: code for name, code in zip(track_names, track_codes)}
 
-		if mode not in sensor_types:
+		if mode not in track_codes:
 			raise ValueError(f"Unknown sensor type: {mode}")
 
-		result = [1 if mode == sensor else 0 for mode in sensor_types]
-		return result
+		return [1 if mode == c else 0 for c in track_codes]
 
 	def calculate_reward(self, obs, folder_name):
 		
+		return 1
+
 		if self.reward_type == "evo":
 			new_cumulative_reward = evo_eval(folder_name, self.ground_truth_ref, self.est_traj_file)
 			new_reward = new_cumulative_reward - self.last_cumulative_reward
@@ -118,11 +132,15 @@ class RLServer(gym.Env):
 
 
 	def encode_action(self, action):
-		return list(self.action_list[action])
+		params = self.action_list[action]
+		msg_str = ",".join(str(p) for p in params) + "\n"
+		return msg_str.encode("ascii")
 
 	def decode_msg(self, msg_str):
 
 		msg = msg_str.decode('utf-8')
+
+		print(f"msg: {msg}")
 
 		if msg == "SLAM_initialized":
 			return "initialized", None
@@ -130,13 +148,16 @@ class RLServer(gym.Env):
 			return "shutdown", 0
 		elif msg == "SLAM_fail_shutdown":
 			return "shutdown", 1
+		elif msg == "":
+			return "slam_shutdown", 2
 		else:
 			request_type = "request_action"
 			obs_str = msg.split(",")
 			obs = []
 			for i in range(len(obs_str)):
 				if i == 1:
-					obs.append(self.encode_track_mode(obs_str[i]))
+					# obs.append(self.encode_track_mode(obs_str[i]))
+					obs = obs + self.encode_track_mode(obs_str[i])
 				else:
 					obs.append(float(obs_str[i]))
 			return request_type, np.array(obs)
@@ -168,7 +189,7 @@ class RLServer(gym.Env):
 			# decision = json.dumps({"type": "decision", "target_server": int(action), "expected_latency": expected_latency})
 			encoded_action = self.encode_action(action)
 			# self.last_sock.sendall(decision.encode('utf-8'))
-			self.last_sock.sendall(encode_action)
+			self.last_sock.sendall(encoded_action)
 			self.last_sock.close()
 			self.request_not_replied = False
 
@@ -192,10 +213,12 @@ class RLServer(gym.Env):
 				else:
 					amplifier = -2
 
-				self.request_not_replied = True
-				self.last_sock = client_socket
-				self.last_addr = client_addr
+				# self.request_not_replied = True
+				# self.last_sock = client_socket
+				# self.last_addr = client_addr
 				return self.obs_template, self.last_cumulative_reward*amplifier, True, False, {"type": "episode_done"}
+			elif request_type == "slam_shutdown":
+				continue
 			else:
 				self.write_traj(obs)
 

@@ -143,7 +143,7 @@ protected:
     void InitializeTCPClient(const std::string& serverIP, int serverPort);
 
     void WriteRowCSVLogger();
-    void SendRowTCP();
+    bool SendRowTCP();
 
     void SetTCP2Actions();
 

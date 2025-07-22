@@ -40,6 +40,7 @@ bool TCPClient::Connect() {
 }
 
 bool TCPClient::SendMessage(const std::string& message) {
+    Connect();
     if (send(clientSocket, message.c_str(), message.size(), 0) == -1) {
         std::cerr << "Error sending data." << std::endl;
         return false;

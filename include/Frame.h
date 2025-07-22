@@ -198,6 +198,9 @@ public:
     // Frame timestamp.
     double mTimeStamp;
 
+    // Image
+    cv::Mat img;
+
     // Calibration matrix and OpenCV distortion parameters.
     cv::Mat mK;
     Eigen::Matrix3f mK_;

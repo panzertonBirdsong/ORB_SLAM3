@@ -44,7 +44,7 @@ void RLEnvironment::InitializeRLEnvironment()
 
     // Initialize IO
     InitializeCSVLogger();
-    InitializeTCPClient("127.0.0.1", 10000);
+    InitializeTCPClient("127.0.0.1", 5000);
 
     // Initialization Done
     mbInitialized = true;
@@ -71,24 +71,40 @@ void RLEnvironment::SetLoopCloser(LoopClosing *pLoopCloser)
 
 void RLEnvironment::Run()
 {
+
+
+    try{
     while(true)
-    {
+    {   
+        std::cout << "***** rl running *****\n";
         if(mbTrackerReady)
         {   
-            std::cout << "\nxxxx\n";
+            std::cout << "***** rl mbTrackerReady *****\n";
+            CollectImageTimeStamp(mpTracker->mCurrentFrame.mTimeStamp);
+            CollectImagePixel(mpTracker->mCurrentFrame.img);
+            CollectCurrentFrameTrackMode(mpSystem->GetTrackingState());
+            CollectCurrentFrameMatchedInlier(mpTracker->GetMatchesInliers());
+            CollectCurrentFrameNumberKeyPoint(mpTracker->mCurrentFrame.N);
+            CollectCurrentFramePose(mpTracker->mCurrentFrame.GetPose());
+            CollectCurrentNumberKeyFrame(mpAtlas->KeyFramesInMap());
+
             if(mbIsNewFrameProcessed == false)
             {   
-                std::cout << "\nyyyy\n";
+                std::cout << "***** newFrame *****\n";
                 CalculateImageFeatures();
                 //std::cout << " RL plugin - Run - Time Stamp @ " << fixed << setprecision(6) << mdTimeStamp << std::endl;
                 //std::cout << " RL plugin - Run - laplacian @ " << fixed << setprecision(2) << mdLaplacian << std::endl;
                 //std::cout << " RL plugin - Run - TrackMode @ " << mnTrackMode << std::endl;
                 //std::cout << " RL plugin - Run - MatchedInlier @ " << mnMatchedInlier << std::endl;
                 //std::cout << " RL plugin - Run - Coordinates @ " << fixed << setprecision(2) << mtwc(0) << "," <<  mtwc(1) << "," <<  mtwc(2) << std::endl;
-
                 WriteRowCSVLogger();
-                SendRowTCP();
-                SetTCP2Actions();
+                std::cout << "***** csv written *****\n";
+                bool sendResult = SendRowTCP();
+                std::cout << "***** tcp sent *****\n";
+                if (sendResult){
+                    SetTCP2Actions();
+                }
+                std::cout << "***** action set *****\n";
 
                 //// flip the flag of mbIsNewFrameProcessed
                 // Try to acquire the timed_mutex with a timeout of 1 milliseconds
@@ -104,6 +120,12 @@ void RLEnvironment::Run()
         // Wait for 0.01s = 10ms
         usleep(0.01*1000*1000);
     }
+    }
+    catch (const std::exception &e){
+        std::cout << "RLPlugin error: " << e.what() << std::endl;
+    }
+
+
 }
 
 
@@ -338,7 +360,7 @@ void RLEnvironment::InitializeCSVLogger()
 void RLEnvironment::InitializeTCPClient(const std::string& serverIP, int serverPort) {
     // Create a socket
     mpTCPClient = new TCPClient(serverIP, serverPort);
-    mpTCPClient->Connect();
+    // mpTCPClient->Connect();
 }
 
 
@@ -387,6 +409,7 @@ void RLEnvironment::WriteRowCSVLogger()
         else
         {
             mFileLogger << ","  << ","  << ","  << ",";
+            return;
         }
 
         if(mbCurrentFrameFeaturesReady)
@@ -420,6 +443,7 @@ void RLEnvironment::WriteRowCSVLogger()
         else
         {
             mFileLogger << ","  << "," << ","  << ","  << "," << ","  << ","  << ","  << "," << ","  << ","  << ","  << "," << ","  << ","  << ",";
+            return;
         }
         mFileLogger << mfActionThRefRatio << "," << mnActionMinFrames << "," << mnActionMaxFrames;
 
@@ -428,12 +452,12 @@ void RLEnvironment::WriteRowCSVLogger()
 }
 
 
-void RLEnvironment::SendRowTCP()
+bool RLEnvironment::SendRowTCP()
 {
     if (!mpTCPClient)
     {
         std::cerr << "TCP port haven't initialized" << std::endl;
-        return;
+        return false;
     }
     else
     {
@@ -446,7 +470,7 @@ void RLEnvironment::SendRowTCP()
         }
         else {
             std::cout << " failed to acquire the mMutexImageTimeStamp in CSV logger within 10 milliseconds." << std::endl;
-            return;
+            return false;
         }
 
         // Try to acquire the timed_mutex with a timeout of 10 milliseconds
@@ -456,7 +480,7 @@ void RLEnvironment::SendRowTCP()
         }
         else {
             std::cout << " failed to acquire the mMutexCurrentFrameTrackMode in CSV logger within 10 milliseconds." << std::endl;
-            return;
+            return false;
         }
 
         if(mbImageFeaturesReady)
@@ -470,13 +494,13 @@ void RLEnvironment::SendRowTCP()
             }
             else {
                 std::cout << " failed to acquire the mMutexImageFeatures in CSV logger within 10 milliseconds." << std::endl;
-                return;
+                return false;
             }
         }
         else
         {
             csvRow << ","  << ","  << ","  << ",";
-            return;
+            return false;
         }
 
         if(mbCurrentFrameFeaturesReady)
@@ -488,7 +512,7 @@ void RLEnvironment::SendRowTCP()
             }
             else {
                 std::cout << " failed to acquire the mMutexCurrentFrameMatchedInlier in CSV logger within 10 milliseconds." << std::endl;
-                return;
+                return false;
             }
             // Try to acquire the timed_mutex with a timeout of 10 milliseconds
             if (mMutexCurrentFrameFeatures.try_lock_for(std::chrono::milliseconds(10))) {
@@ -501,18 +525,20 @@ void RLEnvironment::SendRowTCP()
             }
             else {
                 std::cout << " failed to acquire the mMutexCurrentFrameFeatures in CSV logger within 10 milliseconds." << std::endl;
-                return;
+                return false;
             }
         }
         else
         {
             csvRow << ","  << ","  << "," << "," << "," << ","  << ","  << ","  << "," << ","  << ","  << ","  << "," << ","  << ",";
-            return;
+            return false;
         }
         //csvRow << mfActionThRefRatio << "," << mnActionMinFrames << "," << mnActionMaxFrames;
 
         std::string csvString = csvRow.str();
-        mpTCPClient->SendMessage(csvString);
+        bool result = mpTCPClient->SendMessage(csvString);
+        std::cout << "&&&&& result: " << result << std::endl;
+        return result;
     }
 }
 
