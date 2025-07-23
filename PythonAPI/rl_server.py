@@ -117,9 +117,7 @@ class RLServer(gym.Env):
 		return [1 if mode == c else 0 for c in track_codes]
 
 	def calculate_reward(self, obs, folder_name):
-		
 		return 1
-
 		if self.reward_type == "evo":
 			new_cumulative_reward = evo_eval(folder_name, self.ground_truth_ref, self.est_traj_file)
 			new_reward = new_cumulative_reward - self.last_cumulative_reward
@@ -155,7 +153,9 @@ class RLServer(gym.Env):
 			obs_str = msg.split(",")
 			obs = []
 			for i in range(len(obs_str)):
-				if i == 1:
+				if i == 0:
+					obs.append(int(round(float(obs_str[i]) * 1e9)))
+				elif i == 1:
 					# obs.append(self.encode_track_mode(obs_str[i]))
 					obs = obs + self.encode_track_mode(obs_str[i])
 				else:

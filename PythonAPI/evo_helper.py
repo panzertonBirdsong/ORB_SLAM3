@@ -58,8 +58,12 @@ def evo_eval(eval_name, ref_file, est_file):
     traj_est = file_interface.read_tum_trajectory_file(est_file)
 
     max_diff = 0.01
-    traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est, max_diff)
+    try:
+        traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est, max_diff)
+    except Exception:
+        return 0
 
+        
     traj_est_aligned = copy.deepcopy(traj_est)
     traj_est_aligned.align(traj_ref, correct_scale=False, correct_only_scale=False)
 
