@@ -57,7 +57,7 @@ def evo_eval(eval_name, ref_file, est_file):
     traj_ref = file_interface.read_tum_trajectory_file(ref_trimmed_file)
     traj_est = file_interface.read_tum_trajectory_file(est_file)
 
-    max_diff = 0.01
+    max_diff = 0.03
     try:
         traj_ref, traj_est = sync.associate_trajectories(traj_ref, traj_est, max_diff)
     except Exception:

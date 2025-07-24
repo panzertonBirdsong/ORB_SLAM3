@@ -131,6 +131,8 @@ class RLServer(gym.Env):
 
 	def encode_action(self, action):
 		params = self.action_list[action]
+		if self.verbose:
+				print(f"\t action: {params}", flush=True)
 		msg_str = ",".join(str(p) for p in params) + "\n"
 		return msg_str.encode("ascii")
 
@@ -183,11 +185,11 @@ class RLServer(gym.Env):
 		# reply decision if task_request is received in previous step
 		if self.request_not_replied:
 
-			if self.verbose:
-				print(f"\t action: {action}", flush=True)
+			
 
 			# decision = json.dumps({"type": "decision", "target_server": int(action), "expected_latency": expected_latency})
 			encoded_action = self.encode_action(action)
+			
 			# self.last_sock.sendall(decision.encode('utf-8'))
 			self.last_sock.sendall(encoded_action)
 			self.last_sock.close()

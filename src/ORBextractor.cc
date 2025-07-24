@@ -562,6 +562,13 @@ namespace ORB_SLAM3
 
         list<ExtractorNode> lNodes;
 
+        int w = maxX - minX;
+        int h = maxY - minY;
+        // std::cerr << "nLevels=" << level
+        //             << "minX="<<minX<<" maxX="<<maxX
+        //           << "  minY="<<minY<<" maxY="<<maxY
+        //           << "  w="<<w<<" h="<<h << std::endl;
+
         vector<ExtractorNode*> vpIniNodes;
         vpIniNodes.resize(nIni);
 
@@ -790,6 +797,10 @@ namespace ORB_SLAM3
             const int minBorderY = minBorderX;
             const int maxBorderX = mvImagePyramid[level].cols-EDGE_THRESHOLD+3;
             const int maxBorderY = mvImagePyramid[level].rows-EDGE_THRESHOLD+3;
+
+            // In case the nLevels is large and the pixel is smaller than padding
+            if (maxBorderX <= minBorderX || maxBorderY <= minBorderY)
+                continue;
 
             vector<cv::KeyPoint> vToDistributeKeys;
             vToDistributeKeys.reserve(nfeatures*10);

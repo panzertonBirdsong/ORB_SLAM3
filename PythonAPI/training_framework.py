@@ -18,7 +18,7 @@ def train():
 
 	model = PPO("MlpPolicy", env, n_steps=128, verbose=1, tensorboard_log="logs/ppo/", device="cpu")
 
-	model.learn(total_timesteps=1, log_interval=1)
+	model.learn(total_timesteps=1000, log_interval=1)
 	model.save("saved_models")
 	print("Training done!", flush=True)
 
