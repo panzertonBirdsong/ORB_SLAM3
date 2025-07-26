@@ -149,6 +149,11 @@ namespace ORB_SLAM3 {
 
         auto projectJac = -pCamera->projectJac(xyz_trans);
 
+        // force evaluation
+        // Eigen::Matrix<double,2,3> projectJac = (-pCamera->projectJac(xyz_trans)).eval();
+        // _jacobianOplusXi.noalias() = projectJac * T.rotation().toRotationMatrix();
+
+
         _jacobianOplusXi =  projectJac * T.rotation().toRotationMatrix();
 
         Eigen::Matrix<double,3,6> SE3deriv;

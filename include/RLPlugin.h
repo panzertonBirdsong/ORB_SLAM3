@@ -58,12 +58,20 @@ public:
     int GetActionMaxFrames();
     int GetActionMinFrames();
 
+    // Finish
+    void RequestFinish();
+    bool CheckFinish();
+    void SetFinish();
+    bool isFinished();
+
 protected:
     System *mpSystem;
     Atlas* mpAtlas;
     bool mbMonocular;
     bool mbInertial;
     bool mbFinished;
+    bool mbFinishRequested;
+    std::mutex mMutexFinish;
 
     bool mbInitialized = false;
 

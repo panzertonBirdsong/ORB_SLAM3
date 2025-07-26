@@ -23,6 +23,7 @@ void RLEnvironment::InitializeRLEnvironment()
 {
     // Initialize variables
     mbFinished = false;
+    mbFinishRequested = false;
     mpTracker = NULL;
     mpLocalMapper = NULL;
     mpLoopCloser = NULL;
@@ -76,13 +77,29 @@ void RLEnvironment::Run()
     try{
     while(true)
     {   
+
+        if (CheckFinish()){
+            break;
+        }
         std::cout << "***** rl running *****\n";
         if(mbTrackerReady)
         {   
             std::cout << "***** rl mbTrackerReady *****\n";
             CollectImageTimeStamp(mpTracker->mCurrentFrame.mTimeStamp);
             CollectImagePixel(mpTracker->mCurrentFrame.img);
-            CollectCurrentFrameTrackMode(mpSystem->GetTrackingState());
+
+            // int s = mpSystem->GetTrackingState();
+            // if (s != 1){
+            //     continue;
+            // }
+
+            // CollectCurrentFrameTrackMode(mpSystem->GetTrackingState());
+            // CollectCurrentFrameMatchedInlier(mpTracker->GetMatchesInliers());
+            // CollectCurrentFrameNumberKeyPoint(mpTracker->mCurrentFrame.N);
+            // CollectCurrentFramePose(mpTracker->mCurrentFrame.GetPose());
+            // CollectCurrentNumberKeyFrame(mpAtlas->KeyFramesInMap());
+
+            CollectCurrentFrameTrackMode(mpSystem->mTrackingState);
             CollectCurrentFrameMatchedInlier(mpTracker->GetMatchesInliers());
             CollectCurrentFrameNumberKeyPoint(mpTracker->mCurrentFrame.N);
             CollectCurrentFramePose(mpTracker->mCurrentFrame.GetPose());
@@ -117,9 +134,13 @@ void RLEnvironment::Run()
                 }
             }
         }
+        
+
         // Wait for 0.01s = 10ms
         usleep(0.01*1000*1000);
     }
+    SetFinish();
+
     }
     catch (const std::exception &e){
         std::cout << "RLPlugin error: " << e.what() << std::endl;
@@ -538,6 +559,7 @@ bool RLEnvironment::SendRowTCP()
         std::string csvString = csvRow.str();
         bool result = mpTCPClient->SendMessage(csvString);
         std::cout << "&&&&& result: " << result << std::endl;
+        mpTCPClient->Disconnect();
         return result;
     }
 }
@@ -605,6 +627,26 @@ int RLEnvironment::GetActionMaxFrames()
 int RLEnvironment::GetActionMinFrames()
 {
     return mnActionMinFrames;
+}
+
+void RLEnvironment::RequestFinish(){
+    unique_lock<mutex> lock(mMutexFinish);
+    mbFinishRequested = true;
+}
+
+bool RLEnvironment::CheckFinish(){
+    unique_lock<mutex> lock(mMutexFinish);
+    return mbFinishRequested;
+}
+
+void RLEnvironment::SetFinish(){
+    unique_lock<mutex> lock(mMutexFinish);
+    mbFinished = true;
+}
+
+bool RLEnvironment::isFinished(){
+    unique_lock<mutex> lock(mMutexFinish);
+    return mbFinished;
 }
 
 

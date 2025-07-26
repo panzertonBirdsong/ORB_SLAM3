@@ -34,6 +34,11 @@ cd ..
 
 echo "Configuring and building ORB_SLAM3 ..."
 
+# mkdir build
+# cd build
+# cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DBUILD_PANGOLIN_VIEWER=ON
+# make -j4
+
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DBUILD_PANGOLIN_VIEWER=ON
