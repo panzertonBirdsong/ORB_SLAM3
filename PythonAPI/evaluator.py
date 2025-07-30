@@ -3,9 +3,8 @@ from collections import deque
 import math
 
 class StreamingAPE:
-    def __init__(self, gt_path, n_traj=30, use_sim3=True):
+    def __init__(self, gt_path, n_traj=50):
 
-        self.use_sim3 = use_sim3
         self.n_traj   = n_traj
 
         self.gt_ts, self.gt_pos = self._read_gt(gt_path)
@@ -23,6 +22,7 @@ class StreamingAPE:
         self.rmse = 0.0
 
     def add_pose(self, est_sample):
+        self.n += 1
         t_e = est_sample[0]
         p_e = np.array(est_sample[1:4], dtype=float)
 
@@ -30,18 +30,20 @@ class StreamingAPE:
         if p_g is None:
             return None, None
 
-        if not self.aligned:
-            self._est_pts.append(p_e)
-            self._gt_pts.append(p_g)
-            if len(self._est_pts) >= self.n_traj:
-                self._build_alignment()
-            return None, None
+        self._est_pts.append(p_e)
+        self._gt_pts.append(p_g)
+        
+        
+        if len(self._est_pts) >= self.n_traj and self.n % 100 == 0 and self.n != 0:
+            self._build_alignment()
 
+        if not self.aligned:
+            return None, None
+        
         p_e_aligned = self.s * (self.R @ p_e) + self.t
 
         e = np.linalg.norm(p_g - p_e_aligned)
 
-        self.n += 1
         self.sum_sq += e**2
         self.rmse = math.sqrt(self.sum_sq / self.n)
 
@@ -64,6 +66,7 @@ class StreamingAPE:
                 pos.append([px, py, pz])
         ts  = np.array(ts)
         pos = np.array(pos)
+
         order = np.argsort(ts)
         return ts[order], pos[order]
 
@@ -82,31 +85,22 @@ class StreamingAPE:
         return (1 - alpha) * p0 + alpha * p1
 
     def _build_alignment(self):
-        X = np.array(self._est_pts)  # est
-        Y = np.array(self._gt_pts)   # gt
-        self.s, self.R, self.t = self._umeyama_sim3(X, Y) if self.use_sim3 else self._umeyama_se3(X, Y)
+        X = np.array(self._est_pts)
+        Y = np.array(self._gt_pts)
+        self.s, self.R, self.t = self._umeyama(X, Y)
         self.aligned = True
-        # Free memory
         self._est_pts.clear(); self._gt_pts.clear()
 
     @staticmethod
-    def _umeyama_sim3(X, Y):
+    def _umeyama(X, Y):
         muX, muY = X.mean(0), Y.mean(0)
         Xc, Yc = X - muX, Y - muY
-        S = (Xc.T @ Yc) / X.shape[0]
-        U, D, Vt = np.linalg.svd(S)
+        Cov = (Xc.T @ Yc) / X.shape[0]
+        U, D, Vt = np.linalg.svd(Cov)
         R = U @ np.diag([1, 1, np.sign(np.linalg.det(U @ Vt))]) @ Vt
         varX = (Xc**2).sum()/X.shape[0]
         s = np.trace(np.diag(D)) / varX
         t = muY - s * (R @ muX)
         return s, R, t
 
-    @staticmethod
-    def _umeyama_se3(X, Y):
-        muX, muY = X.mean(0), Y.mean(0)
-        Xc, Yc = X - muX, Y - muY
-        S = (Xc.T @ Yc) / X.shape[0]
-        U, _, Vt = np.linalg.svd(S)
-        R = U @ np.diag([1, 1, np.sign(np.linalg.det(U @ Vt))]) @ Vt
-        t = muY - R @ muX
-        return 1.0, R, t
+
