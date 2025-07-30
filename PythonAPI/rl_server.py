@@ -11,6 +11,7 @@ import docker
 import os
 import itertools
 from evo_helper import evo_eval
+from evaluator import StreamingAPE
 
 
 
@@ -30,7 +31,7 @@ class RLServer(gym.Env):
 			os.remove(self.est_traj_file)
 		open(self.est_traj_file, 'w').close()
 
-
+		self.ape_estimator = StreamingAPE(self.ground_truth_ref)
 
 		self.port = 5000
 		self.host = "127.0.0.1"
@@ -40,6 +41,8 @@ class RLServer(gym.Env):
 		self.socket.listen(20)
 		self.last_sock = None
 		self.last_addr = None
+
+		self.traj_list = []
 
 		SEARCH_SPACE = {
 			"ORBextractor.nFeatures":   [800, 1200, 1600, 2000],
@@ -117,12 +120,19 @@ class RLServer(gym.Env):
 		return [1 if mode == c else 0 for c in track_codes]
 
 	def calculate_reward(self, obs, folder_name):
-		return 1
+		# return 1
+		est_list = obs[0] + obs[14:21]
 		if self.reward_type == "evo":
-			new_cumulative_reward = evo_eval(folder_name, self.ground_truth_ref, self.est_traj_file)
-			new_reward = new_cumulative_reward - self.last_cumulative_reward
-			self.last_cumulative_reward = new_cumulative_reward
-			return new_reward
+			# new_cumulative_reward = evo_eval(folder_name, self.ground_truth_ref, self.est_traj_file)
+			# new_reward = new_cumulative_reward - self.last_cumulative_reward
+			# self.last_cumulative_reward = new_cumulative_reward
+			# return new_reward
+
+			
+			e, rmse = self.ape_estimator.add_pose(est_list)
+			if e is not None:
+				return -e
+			return 0
 
 		elif self.reward_type == "SEESys":
 			...
@@ -140,7 +150,8 @@ class RLServer(gym.Env):
 
 		msg = msg_str.decode('utf-8')
 
-		print(f"msg: {msg}")
+		if self.verbose:
+			print(f"msg: {msg}")
 
 		if msg == "SLAM_initialized":
 			return "initialized", None
@@ -257,6 +268,7 @@ class RLServer(gym.Env):
 		self.itr = 0
 
 		observation = self.obs_template
+		self.ape_estimator = StreamingAPE(self.ground_truth_ref)
 
 		self.just_reset = True
 		self.request_not_replied = False

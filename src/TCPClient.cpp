@@ -15,7 +15,8 @@ TCPClient::TCPClient(const std::string& serverAddress, int serverPort)
 }
 
 TCPClient::~TCPClient() {
-    Disconnect();
+    // Disconnect();
+    return;
 }
 
 bool TCPClient::Connect() {

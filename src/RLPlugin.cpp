@@ -81,10 +81,10 @@ void RLEnvironment::Run()
         if (CheckFinish()){
             break;
         }
-        std::cout << "***** rl running *****\n";
+        // std::cout << "***** rl running *****\n";
         if(mbTrackerReady)
         {   
-            std::cout << "***** rl mbTrackerReady *****\n";
+            // std::cout << "***** rl mbTrackerReady *****\n";
             CollectImageTimeStamp(mpTracker->mCurrentFrame.mTimeStamp);
             CollectImagePixel(mpTracker->mCurrentFrame.img);
 
@@ -107,7 +107,7 @@ void RLEnvironment::Run()
 
             if(mbIsNewFrameProcessed == false)
             {   
-                std::cout << "***** newFrame *****\n";
+                // std::cout << "***** newFrame *****\n";
                 CalculateImageFeatures();
                 //std::cout << " RL plugin - Run - Time Stamp @ " << fixed << setprecision(6) << mdTimeStamp << std::endl;
                 //std::cout << " RL plugin - Run - laplacian @ " << fixed << setprecision(2) << mdLaplacian << std::endl;
@@ -115,13 +115,13 @@ void RLEnvironment::Run()
                 //std::cout << " RL plugin - Run - MatchedInlier @ " << mnMatchedInlier << std::endl;
                 //std::cout << " RL plugin - Run - Coordinates @ " << fixed << setprecision(2) << mtwc(0) << "," <<  mtwc(1) << "," <<  mtwc(2) << std::endl;
                 WriteRowCSVLogger();
-                std::cout << "***** csv written *****\n";
+                // std::cout << "***** csv written *****\n";
                 bool sendResult = SendRowTCP();
-                std::cout << "***** tcp sent *****\n";
+                // std::cout << "***** tcp sent *****\n";
                 if (sendResult){
                     SetTCP2Actions();
                 }
-                std::cout << "***** action set *****\n";
+                // std::cout << "***** action set *****\n";
 
                 //// flip the flag of mbIsNewFrameProcessed
                 // Try to acquire the timed_mutex with a timeout of 1 milliseconds
@@ -558,7 +558,7 @@ bool RLEnvironment::SendRowTCP()
 
         std::string csvString = csvRow.str();
         bool result = mpTCPClient->SendMessage(csvString);
-        std::cout << "&&&&& result: " << result << std::endl;
+        // std::cout << "&&&&& result: " << result << std::endl;
         mpTCPClient->Disconnect();
         return result;
     }
@@ -605,7 +605,7 @@ void RLEnvironment::SetTCP2Actions()
 
         if (mpTracker) {
 
-            std::cout << "\nRequest to change orb.\n";
+            // std::cout << "\nRequest to change orb.\n";
 
             mpTracker->ChangeORB(nFeatures, nLevels, fIniThFAST, fMinThFAST, fScaleFactor);
         }
